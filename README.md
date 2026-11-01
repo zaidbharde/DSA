@@ -19,7 +19,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Merge sort | Java | [MergeSort.java](MergeSort.java) |
 | Stack | Java | [Stack.java](Stack.java) |
 
-### New solution paths in this batch
+### Previously added solutions (2026-10-31)
 
 | Problem | Language | Source |
 |---|---|---|
@@ -30,6 +30,22 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Trie | TypeScript | [typescript/trie.ts](typescript/trie.ts) |
 | Merge intervals | C++ | [cpp/merge_intervals.cpp](cpp/merge_intervals.cpp) |
 | Number of islands | Java | [java/NumberOfIslands.java](java/NumberOfIslands.java) |
+
+### Solutions added (2026-11-01)
+
+| Problem | Language | Source |
+|---|---|---|
+| Circular queue | C | [c/circular_queue.c](c/circular_queue.c) |
+| Heap sort | C++ | [cpp/heap_sort.cpp](cpp/heap_sort.cpp) |
+| Kruskal minimum spanning tree | Java | [java/KruskalMST.java](java/KruskalMST.java) |
+| Coin change | Python | [python/coin_change.py](python/coin_change.py) |
+| Disjoint set (union-find) | Rust | [rust/disjoint_set.rs](rust/disjoint_set.rs) |
+| Sliding window maximum | JavaScript | [javascript/sliding_window_max.js](javascript/sliding_window_max.js) |
+| Segment tree | TypeScript | [typescript/segment_tree.ts](typescript/segment_tree.ts) |
+
+## Recent improvements
+
+The C++ binary search in [BS.cpp](BS.cpp) is safe on an empty vector and returns the first occurrence when the target is duplicated. The Java BFS in [BFSGraph.java](BFSGraph.java) uses `ArrayDeque` as its FIFO queue.
 
 ## Layout and conventions
 
