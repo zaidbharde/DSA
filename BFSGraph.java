@@ -1,7 +1,6 @@
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.List;
-import java.util.Queue;
 
 public class BFSGraph {
     /**
@@ -39,18 +38,19 @@ public class BFSGraph {
         }
 
         boolean[] visited = new boolean[adj.size()];
-        Queue<Integer> queue = new LinkedList<>();
+        // ArrayDeque is an allocation-light, appropriate FIFO queue for BFS.
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
         List<Integer> traversal = new ArrayList<>();
 
         visited[start] = true;
-        queue.add(start);
+        queue.addLast(start);
         while (!queue.isEmpty()) {
-            int vertex = queue.remove();
+            int vertex = queue.removeFirst();
             traversal.add(vertex);
             for (int neighbor : adj.get(vertex)) {
                 if (!visited[neighbor]) {
                     visited[neighbor] = true;
-                    queue.add(neighbor);
+                    queue.addLast(neighbor);
                 }
             }
         }
@@ -84,6 +84,16 @@ public class BFSGraph {
         ordinary.get(3).add(4);
         assert bfs(ordinary, 0).equals(List.of(0, 1, 2, 3, 4));
 
+        // Self-loops and duplicate edges do not enqueue or visit a vertex twice.
+        List<List<Integer>> loopsAndDuplicates = graph(3);
+        loopsAndDuplicates.get(0).add(0);
+        loopsAndDuplicates.get(0).add(1);
+        loopsAndDuplicates.get(0).add(1);
+        loopsAndDuplicates.get(1).add(1);
+        loopsAndDuplicates.get(1).add(2);
+        loopsAndDuplicates.get(1).add(2);
+        assert bfs(loopsAndDuplicates, 0).equals(List.of(0, 1, 2));
+
         // Disconnected vertices are not included; an isolated start is returned alone.
         List<List<Integer>> disconnected = graph(5);
         disconnected.get(0).add(1);
@@ -97,6 +107,9 @@ public class BFSGraph {
         expectInvalid("empty graph", () -> bfs(graph(0), 0));
         expectInvalid("negative start", () -> bfs(graph(1), -1));
         expectInvalid("start past the final vertex", () -> bfs(graph(1), 1));
+        List<List<Integer>> nullNeighborList = graph(2);
+        nullNeighborList.set(1, null);
+        expectInvalid("null neighbor list", () -> bfs(nullNeighborList, 0));
         List<List<Integer>> invalidNeighbor = graph(2);
         invalidNeighbor.get(0).add(2);
         expectInvalid("out-of-range neighbor", () -> bfs(invalidNeighbor, 0));
