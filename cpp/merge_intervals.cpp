@@ -6,8 +6,10 @@
 
 // Merges closed integer intervals. A pair {start, end} denotes [start, end].
 // Throws std::invalid_argument if any interval has start > end.
-// Complexity: O(n log n) time for sorting and O(n) auxiliary space for the
-// result (the sort itself uses O(log n) stack space).
+// Complexity: O(n log n) time for sorting; the merge pass is O(n) time and
+// O(1) auxiliary space. It compacts the by-value input vector and returns that
+// storage, avoiding a separate O(n) result allocation. std::sort's auxiliary
+// storage is implementation-dependent (commonly O(log n) stack space).
 std::vector<std::pair<int, int>> merge_intervals(
     std::vector<std::pair<int, int>> intervals) {
   for (const auto& interval : intervals) {
@@ -16,27 +18,26 @@ std::vector<std::pair<int, int>> merge_intervals(
     }
   }
 
-  if (intervals.empty()) {
-    return {};
-  }
-
   std::sort(intervals.begin(), intervals.end());
-  std::vector<std::pair<int, int>> merged;
-  merged.reserve(intervals.size());
-  merged.push_back(intervals.front());
+  std::size_t merged_size = 0;
+  for (std::size_t i = 0; i < intervals.size(); ++i) {
+    const auto next = intervals[i];
+    if (merged_size == 0) {
+      intervals[merged_size++] = next;
+      continue;
+    }
 
-  for (std::size_t i = 1; i < intervals.size(); ++i) {
-    const auto& next = intervals[i];
-    auto& current = merged.back();
+    auto& current = intervals[merged_size - 1];
     // Closed intervals overlap when the next start is at most the current end.
     if (next.first <= current.second) {
       current.second = std::max(current.second, next.second);
     } else {
-      merged.push_back(next);
+      intervals[merged_size++] = next;
     }
   }
 
-  return merged;
+  intervals.resize(merged_size);
+  return intervals;
 }
 
 int main() {
@@ -46,6 +47,8 @@ int main() {
   assert((merge_intervals({{3, 7}}) == std::vector<Interval>{{3, 7}}));
   assert((merge_intervals({{1, 10}, {3, 5}, {2, 8}}) ==
           std::vector<Interval>{{1, 10}}));
+  assert((merge_intervals({{2, 5}, {2, 5}, {2, 5}}) ==
+          std::vector<Interval>{{2, 5}}));
   assert((merge_intervals({{1, 3}, {3, 5}, {4, 8}}) ==
           std::vector<Interval>{{1, 8}}));
   assert((merge_intervals({{8, 9}, {1, 2}, {4, 6}}) ==
