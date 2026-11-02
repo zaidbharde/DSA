@@ -40,7 +40,11 @@ skip_toolchain() {
 run_c() {
   source=$1
   output=$2
-  cc -std=c11 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
+  if [ "$(basename "$source")" = "maximum_subarray.c" ]; then
+    cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DMAXIMUM_SUBARRAY_TESTING "$source" -o "$output" && "$output"
+  else
+    cc -std=c11 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
+  fi
 }
 
 run_cpp() {
