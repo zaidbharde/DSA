@@ -1,12 +1,11 @@
 """Decide whether text can be segmented into words from a dictionary.
 
-The dynamic program performs O(n^2) expected dictionary-membership checks for
-n characters, assuming constant-time substring creation and set lookup (the
-usual analysis of the simple substring/set approach). In CPython, slicing and
-hashing a candidate substring can take time proportional to its length, so the
-worst-case character-processing time can be O(n^3). Auxiliary storage is
-O(n + D), where D is the total number of characters in the dictionary; this
-includes the reachable-prefix table and the copied set of words.
+The trie construction takes expected O(D) time, where D is the total number
+of dictionary characters. The dynamic program starts a trie walk only at
+reachable prefix positions and examines at most L characters per position,
+for expected O(D + n*L) construction/search time, where n is the text length
+and L is the maximum word length. The trie and reachable-prefix table use
+O(D + n) storage.
 """
 
 from collections.abc import Iterable
@@ -26,23 +25,36 @@ def word_break(text: str, words: Iterable[str]) -> bool:
     if isinstance(words, (str, bytes)) or not isinstance(words, Iterable):
         raise TypeError("words must be an iterable of non-empty strings")
 
-    dictionary = set()
+    # Trie nodes map characters to child nodes. None marks a completed word;
+    # it cannot collide with a character key because string characters are str.
+    trie = {}
+    max_word_length = 0
     for word in words:
         if not isinstance(word, str):
             raise TypeError("every dictionary entry must be a string")
         if not word:
             raise ValueError("dictionary entries must not be empty")
-        dictionary.add(word)
+        max_word_length = max(max_word_length, len(word))
+        node = trie
+        for character in word:
+            node = node.setdefault(character, {})
+        node[None] = True
 
     n = len(text)
     reachable = [False] * (n + 1)
     reachable[0] = True
 
-    for end in range(1, n + 1):
-        for start in range(end):
-            if reachable[start] and text[start:end] in dictionary:
-                reachable[end] = True
+    for start in range(n):
+        if not reachable[start]:
+            continue
+        node = trie
+        stop = min(n, start + max_word_length)
+        for end in range(start, stop):
+            node = node.get(text[end])
+            if node is None:
                 break
+            if None in node:
+                reachable[end + 1] = True
 
     return reachable[n]
 
@@ -59,6 +71,11 @@ class WordBreakTests(unittest.TestCase):
     def test_overlapping_prefixes_and_backtracking(self):
         self.assertTrue(word_break("aaaaab", ["a", "aa", "aaa", "aaaa", "ab"]))
         self.assertTrue(word_break("cars", ["car", "ca", "rs"]))
+
+    def test_stress_overlapping_prefixes(self):
+        words = ["a" * length for length in range(1, 65)]
+        self.assertFalse(word_break("a" * 1200 + "b", words))
+        self.assertTrue(word_break("a" * 1200, words))
 
     def test_empty_text_is_segmentable(self):
         self.assertTrue(word_break("", []))
