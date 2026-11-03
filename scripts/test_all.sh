@@ -50,7 +50,11 @@ run_c() {
 run_cpp() {
   source=$1
   output=$2
-  c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
+  if [ "$(basename "$source")" = "bellman_ford.cpp" ]; then
+    c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -DBELLMAN_FORD_SELF_TEST "$source" -o "$output" && "$output"
+  else
+    c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
+  fi
 }
 
 run_java() {
