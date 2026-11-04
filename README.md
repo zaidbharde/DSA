@@ -65,16 +65,30 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | KMP search | JavaScript | [javascript/kmp_search.js](javascript/kmp_search.js) |
 | Longest common subsequence (LCS) | TypeScript | [typescript/longest_common_subsequence.ts](typescript/longest_common_subsequence.ts) |
 
+### Solutions added (2026-11-04)
+
+| Problem | Language | Source |
+|---|---|---|
+| Longest substring without repeating characters | C | [c/longest_unique_substring.c](c/longest_unique_substring.c) |
+| Maximum flow (Edmonds–Karp) | C++ | [cpp/edmonds_karp.cpp](cpp/edmonds_karp.cpp) |
+| Lowest common ancestor in a binary tree | Java | [java/BinaryTreeLCA.java](java/BinaryTreeLCA.java) |
+| Merge k sorted arrays | Python | [python/merge_k_sorted_arrays.py](python/merge_k_sorted_arrays.py) |
+| 0/1 knapsack | JavaScript | [javascript/knapsack_01.js](javascript/knapsack_01.js) |
+| Strongly connected components (Tarjan) | TypeScript | [typescript/strongly_connected_components.ts](typescript/strongly_connected_components.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
 |---|---|---|
 | Topological sort (also implemented in JavaScript above) | Rust | [rust/topological_sort.rs](rust/topological_sort.rs) |
 | Sliding window maximum (also implemented in JavaScript above) | Rust | [rust/sliding_window_max.rs](rust/sliding_window_max.rs) |
+| Maximum subarray (also implemented in C above) | Rust | [rust/maximum_subarray.rs](rust/maximum_subarray.rs) |
 
 ## Recent improvements
 
 The C++ binary search in [BS.cpp](BS.cpp) is safe on an empty vector and returns the first occurrence when a target is duplicated. The Java BFS in [BFSGraph.java](BFSGraph.java) uses `ArrayDeque` as its FIFO queue. The C++ merge-interval implementation sorts its by-value input and compacts merged intervals in that same vector before resizing, avoiding a separate result allocation while retaining closed-interval semantics and invalid-range validation. JavaScript Kahn traversal preallocates its FIFO worklist to the vertex count and advances a head index, avoiding front-removal shifts and queue resizing while preserving deterministic order and O(V + E) time. Python [Word Break](python/word_break.py) builds a trie and starts bounded trie walks only at reachable text-prefix positions, with expected O(D + nL) time and O(D + n) storage (D dictionary characters, n text length, L maximum word length). Root Java [BinarySearch.java](BinarySearch.java) uses half-open bounds and an overflow-safe midpoint to find the first matching index in O(log n) time and O(1) auxiliary space, including for empty arrays and duplicate values.
+
+The C [circular queue](c/circular_queue.c) computes wrapped indices with bounded branch-based arithmetic rather than modulo, keeping enqueue and dequeue O(1) while avoiding division in those index updates. C++ [Bellman–Ford](cpp/bellman_ford.cpp) iterates the caller-owned edge list by const reference instead of copying it, reducing algorithm/output storage to O(V) (in addition to the caller's O(E) input list).
 
 ## Layout and conventions
 
@@ -84,4 +98,4 @@ Complexity notes should state time and auxiliary-space bounds, identify relevant
 
 ## Tests
 
-Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING` for `c/maximum_subarray.c` and `BELLMAN_FORD_SELF_TEST` for `cpp/bellman_ford.cpp` so both guarded test entry points execute. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
+Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, and `BELLMAN_FORD_SELF_TEST` for the guarded C/C++ test entry points. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
