@@ -61,7 +61,12 @@ static bool queue_enqueue(CircularQueue *queue, int value)
         return false;
     }
 
-    tail = (queue->head + queue->count) % queue->capacity;
+    /* Avoid division in the enqueue hot path while keeping the sum bounded. */
+    if (queue->count >= queue->capacity - queue->head) {
+        tail = queue->count - (queue->capacity - queue->head);
+    } else {
+        tail = queue->head + queue->count;
+    }
     queue->items[tail] = value;
     queue->count++;
     return true;
@@ -75,7 +80,11 @@ static bool queue_dequeue(CircularQueue *queue, int *out)
     }
 
     *out = queue->items[queue->head];
-    queue->head = (queue->head + 1U) % queue->capacity;
+    /* Increment and reset instead of dividing to wrap the ring index. */
+    queue->head++;
+    if (queue->head == queue->capacity) {
+        queue->head = 0U;
+    }
     queue->count--;
     return true;
 }
@@ -163,6 +172,26 @@ static void test_empty_and_zero_capacity(void)
     queue_destroy(&queue);
 }
 
+static void test_capacity_one(void)
+{
+    CircularQueue queue = {NULL, 0U, 0U, 0U};
+    int value = 0;
+
+    assert(queue_init(&queue, 1U));
+    assert(queue_is_empty(&queue));
+    assert(!queue_is_full(&queue));
+    assert(queue_enqueue(&queue, 7));
+    assert(queue_is_full(&queue));
+    assert(!queue_enqueue(&queue, 8));
+    assert(queue_dequeue(&queue, &value) && value == 7);
+    assert(queue_is_empty(&queue));
+    assert(!queue_dequeue(&queue, &value));
+    assert(queue_enqueue(&queue, 9));
+    assert(queue_dequeue(&queue, &value) && value == 9);
+    assert(queue_is_empty(&queue));
+    queue_destroy(&queue);
+}
+
 static void test_invalid_arguments(void)
 {
     CircularQueue queue = {NULL, 0U, 0U, 0U};
@@ -183,6 +212,7 @@ int main(void)
 {
     test_fifo_and_wraparound();
     test_empty_and_zero_capacity();
+    test_capacity_one();
     test_invalid_arguments();
     puts("All circular queue tests passed.");
     return 0;
