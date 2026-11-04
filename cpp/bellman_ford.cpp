@@ -36,8 +36,8 @@ struct Result {
  * distances are reported rather than wrapped or saturated, even if that
  * candidate would not ultimately be part of a shortest path.
  *
- * Time: O(VE). Auxiliary storage: O(V + E), including the returned distances
- * and a copy of the edge list used by the algorithm.
+ * Time: O(VE). Algorithm/output storage: O(V), including the returned
+ * distances. The caller-owned input edge list is O(E) and is not copied.
  */
 Result shortest_paths(std::size_t vertex_count,
                       const std::vector<Edge>& edges,
@@ -51,7 +51,6 @@ Result shortest_paths(std::size_t vertex_count,
         }
     }
 
-    const std::vector<Edge> edge_list(edges);
     Result result{std::vector<std::optional<std::int64_t>>(vertex_count), false};
     result.distances[source] = 0;
 
@@ -68,7 +67,7 @@ Result shortest_paths(std::size_t vertex_count,
 
     for (std::size_t pass = 1U; pass < vertex_count; ++pass) {
         bool changed = false;
-        for (const Edge& edge : edge_list) {
+        for (const Edge& edge : edges) {
             const std::optional<std::int64_t>& from_distance = result.distances[edge.from];
             if (!from_distance.has_value()) {
                 continue;
@@ -85,7 +84,7 @@ Result shortest_paths(std::size_t vertex_count,
         }
     }
 
-    for (const Edge& edge : edge_list) {
+    for (const Edge& edge : edges) {
         const std::optional<std::int64_t>& from_distance = result.distances[edge.from];
         if (!from_distance.has_value()) {
             continue;
@@ -108,6 +107,16 @@ int main() {
     using bellman_ford::Edge;
     using bellman_ford::Result;
     using bellman_ford::shortest_paths;
+
+    {
+        const std::vector<Edge> edges{{0U, 1U, 4}, {1U, 2U, -3}};
+        const Result result = shortest_paths(3U, edges, 0U);
+        assert(!result.has_reachable_negative_cycle);
+        assert(result.distances[2U] == 1);
+        assert(edges.size() == 2U);
+        assert(edges[0U].from == 0U && edges[0U].to == 1U && edges[0U].weight == 4);
+        assert(edges[1U].from == 1U && edges[1U].to == 2U && edges[1U].weight == -3);
+    }
 
     {
         const Result result = shortest_paths(4U, {{0U, 1U, 4}, {0U, 2U, 5}, {1U, 2U, -3}}, 0U);
