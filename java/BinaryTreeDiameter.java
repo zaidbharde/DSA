@@ -3,9 +3,9 @@
  * on the longest path between any two nodes.
  *
  * The empty tree has diameter 0, and a single-node tree also has diameter 0.
- * A postorder traversal returns each subtree's height while updating the
- * longest path seen so far. This visits every node once: O(n) time and O(h)
- * recursion space, where h is the tree height (O(n) in the worst case).
+ * An iterative postorder traversal returns each subtree's height while
+ * updating the longest path seen so far. This visits every node once: O(n)
+ * time and O(n) auxiliary storage for the traversal stack and subtree heights.
  */
 public final class BinaryTreeDiameter {
     private BinaryTreeDiameter() {
@@ -31,21 +31,45 @@ public final class BinaryTreeDiameter {
      *         0 for an empty or single-node tree
      */
     public static int diameter(Node root) {
-        int[] longest = {0};
-        height(root, longest);
-        return longest[0];
-    }
-
-    /** Returns the subtree height in edges and updates the best diameter. */
-    private static int height(Node node, int[] longest) {
-        if (node == null) {
-            return -1;
+        if (root == null) {
+            return 0;
         }
 
-        int leftHeight = height(node.left, longest);
-        int rightHeight = height(node.right, longest);
-        longest[0] = Math.max(longest[0], leftHeight + rightHeight + 2);
-        return Math.max(leftHeight, rightHeight) + 1;
+        java.util.ArrayDeque<PostorderFrame> stack = new java.util.ArrayDeque<>();
+        java.util.Map<Node, Integer> heights = new java.util.IdentityHashMap<>();
+        stack.push(new PostorderFrame(root, false));
+        int longest = 0;
+
+        while (!stack.isEmpty()) {
+            PostorderFrame frame = stack.pop();
+            Node node = frame.node;
+            if (frame.expanded) {
+                int leftHeight = node.left == null ? -1 : heights.get(node.left);
+                int rightHeight = node.right == null ? -1 : heights.get(node.right);
+                longest = Math.max(longest, leftHeight + rightHeight + 2);
+                heights.put(node, Math.max(leftHeight, rightHeight) + 1);
+            } else {
+                stack.push(new PostorderFrame(node, true));
+                if (node.right != null) {
+                    stack.push(new PostorderFrame(node.right, false));
+                }
+                if (node.left != null) {
+                    stack.push(new PostorderFrame(node.left, false));
+                }
+            }
+        }
+        return longest;
+    }
+
+    /** A node scheduled for either its first visit or postorder completion. */
+    private static final class PostorderFrame {
+        private final Node node;
+        private final boolean expanded;
+
+        private PostorderFrame(Node node, boolean expanded) {
+            this.node = node;
+            this.expanded = expanded;
+        }
     }
 
     private static void runTests() {
@@ -78,6 +102,15 @@ public final class BinaryTreeDiameter {
         notThroughRoot.left.right.right = new Node(6);
         notThroughRoot.right = new Node(7);
         assert diameter(notThroughRoot) == 4 : "diameter not through root";
+
+        final int deepNodeCount = 50_000;
+        Node deepSkewed = new Node(0);
+        Node tail = deepSkewed;
+        for (int i = 1; i < deepNodeCount; i++) {
+            tail.right = new Node(i);
+            tail = tail.right;
+        }
+        assert diameter(deepSkewed) == deepNodeCount - 1 : "deep skewed tree";
     }
 
     public static void main(String[] args) {
