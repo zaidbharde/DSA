@@ -1,10 +1,10 @@
-"""Find a longest palindromic substring using center expansion.
+"""Find a longest palindromic substring in linear time with Manacher's algorithm.
 
 Strings are treated as sequences of Unicode code points, as in Python's
 normal string indexing. No Unicode normalization or grapheme-cluster grouping
 is performed.
 
-Time complexity: O(n^2). Auxiliary space: O(1), excluding the returned
+Time complexity: O(n). Auxiliary space: O(n), excluding the returned
 substring.
 """
 
@@ -15,33 +15,52 @@ def longest_palindromic_substring(text: str) -> str:
     If multiple longest palindromes exist, return the one whose occurrence
     starts earliest. The empty string is returned for empty input.
     """
-    if not text:
+    n = len(text)
+    if n == 0:
         return ""
 
     best_start = 0
     best_length = 1
-    n = len(text)
 
-    def expand(left: int, right: int) -> tuple[int, int]:
-        """Expand around a center; return inclusive bounds of its palindrome."""
-        while left >= 0 and right < n and text[left] == text[right]:
-            left -= 1
-            right += 1
-        return left + 1, right - left - 1
+    # odd[i] is the radius (including the center) of the longest odd
+    # palindrome centered at i.
+    odd = [0] * n
+    left, right = 0, -1
+    for i in range(n):
+        radius = 1 if i > right else min(odd[left + right - i], right - i + 1)
+        while i - radius >= 0 and i + radius < n and text[i - radius] == text[i + radius]:
+            radius += 1
+        odd[i] = radius
+        start = i - radius + 1
+        length = 2 * radius - 1
+        if length > best_length or (length == best_length and start < best_start):
+            best_start = start
+            best_length = length
+        if i + radius - 1 > right:
+            left, right = i - radius + 1, i + radius - 1
 
-    for center in range(n):
-        # Odd-length palindrome centered on one code point.
-        for left, length in (expand(center, center), expand(center, center + 1)):
-            if length > best_length or (
-                length == best_length and left < best_start
-            ):
-                best_start = left
-                best_length = length
+    # even[i] is the radius of the longest even palindrome centered between
+    # i - 1 and i.
+    even = [0] * n
+    left, right = 0, -1
+    for i in range(n):
+        radius = 0 if i > right else min(even[left + right - i + 1], right - i + 1)
+        while i - radius - 1 >= 0 and i + radius < n and text[i - radius - 1] == text[i + radius]:
+            radius += 1
+        even[i] = radius
+        start = i - radius
+        length = 2 * radius
+        if length > best_length or (length == best_length and start < best_start):
+            best_start = start
+            best_length = length
+        if i + radius - 1 > right:
+            left, right = i - radius, i + radius - 1
 
     return text[best_start : best_start + best_length]
 
 
 if __name__ == "__main__":
+    import itertools
     import unittest
 
     class LongestPalindromicSubstringTests(unittest.TestCase):
@@ -69,5 +88,30 @@ if __name__ == "__main__":
             self.assertEqual(
                 longest_palindromic_substring("x🙂y🙂x"), "x🙂y🙂x"
             )
+
+        def test_adversarial_long_repeated_string(self) -> None:
+            text = "a" * 100_000
+            self.assertEqual(longest_palindromic_substring(text), text)
+
+        def test_exhaustive_short_strings_against_oracle(self) -> None:
+            def oracle(text: str) -> str:
+                best = ""
+                best_start = 0
+                for start in range(len(text)):
+                    for end in range(start + 1, len(text) + 1):
+                        candidate = text[start:end]
+                        if candidate == candidate[::-1] and (
+                            len(candidate) > len(best)
+                            or (len(candidate) == len(best) and start < best_start)
+                        ):
+                            best = candidate
+                            best_start = start
+                return best
+
+            for length in range(8):
+                for chars in itertools.product("ab🙂", repeat=length):
+                    text = "".join(chars)
+                    with self.subTest(text=text):
+                        self.assertEqual(longest_palindromic_substring(text), oracle(text))
 
     unittest.main()
