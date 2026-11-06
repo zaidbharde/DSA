@@ -1,12 +1,17 @@
+#include <algorithm>
+#include <cstddef>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 // Returns the 1-indexed kth-smallest value, reordering values in place.
-// Average time: O(n). Worst-case time: O(n^2). Auxiliary space: O(1).
-// The deterministic median-of-three pivot helps typical inputs but does not
-// change the quadratic worst case. Three-way partitioning handles duplicates.
+// Average time: O(n). Worst-case time: O(n log n) with the sort fallback.
+// Auxiliary space: O(log n) worst case for std::sort's fallback stack; the
+// quickselect partitioning itself uses O(1) auxiliary space.
+// Median-of-three and three-way partitioning handle typical inputs and
+// duplicates; an introselect-style depth budget prevents quadratic behavior.
 int kthSmallest(std::vector<int>& values, int k) {
     if (k < 1) {
         throw std::invalid_argument("k must be at least 1");
@@ -19,7 +24,21 @@ int kthSmallest(std::vector<int>& values, int k) {
     std::size_t right = values.size();  // Exclusive.
     const std::size_t target = static_cast<std::size_t>(k - 1);
 
+    std::size_t logarithm = 0;
+    for (std::size_t remaining = values.size(); remaining > 1;
+         remaining /= 2) {
+        ++logarithm;
+    }
+    std::size_t depth_budget = 2 * logarithm;
+
     while (true) {
+        if (depth_budget == 0) {
+            std::sort(values.begin() + static_cast<std::ptrdiff_t>(left),
+                      values.begin() + static_cast<std::ptrdiff_t>(right));
+            return values[target];
+        }
+        --depth_budget;
+
         const std::size_t middle = left + (right - left) / 2;
         const int first = values[left];
         const int median_candidate = values[middle];
@@ -118,6 +137,43 @@ void runTests() {
     expectEqual(kthSmallest(reverse_sorted, 4), 4, "reverse-sorted input");
     std::vector<int> negatives{-8, -3, -10, 0, -1};
     expectEqual(kthSmallest(negatives, 2), -8, "negative values");
+
+    // Larger sorted and reverse-sorted sequences exercise ordinary boundary
+    // patterns while checking ranks near both ends and the middle.
+    std::vector<int> large_sorted;
+    for (int value = -1024; value < 1024; ++value) {
+        large_sorted.push_back(value);
+    }
+    std::vector<int> sorted_middle = large_sorted;
+    expectEqual(kthSmallest(sorted_middle, 1024), -1,
+                "large sorted middle rank");
+    std::vector<int> large_reverse(large_sorted.rbegin(), large_sorted.rend());
+    expectEqual(kthSmallest(large_reverse, 2048), 1023,
+                "large reverse-sorted last rank");
+
+    std::vector<int> all_equal(2048, -17);
+    expectEqual(kthSmallest(all_equal, 1024), -17, "all equal values");
+
+    // Heavy duplication with a known, evenly distributed set of values.
+    std::vector<int> duplicate_heavy;
+    for (int index = 0; index < 2100; ++index) {
+        duplicate_heavy.push_back((index % 7) - 3);
+    }
+    expectEqual(kthSmallest(duplicate_heavy, 1), -3,
+                "duplicate-heavy minimum");
+    expectEqual(kthSmallest(duplicate_heavy, 1050), 0,
+                "duplicate-heavy middle");
+    expectEqual(kthSmallest(duplicate_heavy, 2100), 3,
+                "duplicate-heavy maximum");
+
+    const int minimum = std::numeric_limits<int>::min();
+    const int maximum = std::numeric_limits<int>::max();
+    std::vector<int> extremes{maximum, 0, minimum, maximum, -1, minimum};
+    expectEqual(kthSmallest(extremes, 1), minimum, "extreme minimum");
+    std::vector<int> extremes_middle{maximum, 0, minimum, maximum, -1, minimum};
+    expectEqual(kthSmallest(extremes_middle, 3), -1, "extreme middle");
+    std::vector<int> extremes_max{maximum, 0, minimum, maximum, -1, minimum};
+    expectEqual(kthSmallest(extremes_max, 6), maximum, "extreme maximum");
 
     // Rank validation, including empty input.
     expectThrowsInvalidArgument({3, 1}, 0, "k equal to zero");
