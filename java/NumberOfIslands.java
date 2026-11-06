@@ -1,5 +1,4 @@
-import java.util.ArrayDeque;
-import java.util.Queue;
+import java.util.Arrays;
 
 /**
  * Counts four-directionally connected land components in a rectangular grid.
@@ -7,7 +6,7 @@ import java.util.Queue;
  *
  * <p>Complexity: O(R*C) time, since validation and traversal inspect each cell
  * at most a constant number of times. Auxiliary memory is O(R*C) in the worst
- * case for the visited matrix and traversal queue.</p>
+ * case for the visited matrix and reusable primitive work stack.</p>
  */
 public class NumberOfIslands {
     /**
@@ -37,6 +36,9 @@ public class NumberOfIslands {
         }
 
         boolean[][] visited = new boolean[rows][columns];
+        // Reuse one primitive stack for all components, avoiding boxed cells
+        // and per-island queue allocations.
+        int[] worklist = new int[16];
         int islands = 0;
         int[] rowStep = {-1, 1, 0, 0};
         int[] columnStep = {0, 0, -1, 1};
@@ -45,12 +47,12 @@ public class NumberOfIslands {
             for (int column = 0; column < columns; column++) {
                 if (grid[row][column] == '1' && !visited[row][column]) {
                     islands++;
-                    Queue<Integer> queue = new ArrayDeque<>();
-                    queue.add(row * columns + column);
+                    int size = 0;
                     visited[row][column] = true;
+                    worklist = push(worklist, row * columns + column, size++);
 
-                    while (!queue.isEmpty()) {
-                        int cell = queue.remove();
+                    while (size > 0) {
+                        int cell = worklist[--size];
                         int currentRow = cell / columns;
                         int currentColumn = cell % columns;
                         for (int direction = 0; direction < 4; direction++) {
@@ -60,8 +62,10 @@ public class NumberOfIslands {
                                     && nextColumn >= 0 && nextColumn < columns
                                     && grid[nextRow][nextColumn] == '1'
                                     && !visited[nextRow][nextColumn]) {
+                                // Mark on push so a cell can never be added twice.
                                 visited[nextRow][nextColumn] = true;
-                                queue.add(nextRow * columns + nextColumn);
+                                worklist = push(worklist,
+                                        nextRow * columns + nextColumn, size++);
                             }
                         }
                     }
@@ -69,6 +73,16 @@ public class NumberOfIslands {
             }
         }
         return islands;
+    }
+
+    private static int[] push(int[] worklist, int cell, int index) {
+        if (index == worklist.length) {
+            int newLength = worklist.length <= Integer.MAX_VALUE / 2
+                    ? worklist.length * 2 : Integer.MAX_VALUE;
+            worklist = Arrays.copyOf(worklist, newLength);
+        }
+        worklist[index] = cell;
+        return worklist;
     }
 
     private static void expectJaggedGridRejected() {
@@ -83,6 +97,7 @@ public class NumberOfIslands {
     }
 
     private static void runSelfTests() {
+        assert countIslands(null) == 0 : "null grid";
         assert countIslands(new char[0][0]) == 0 : "empty grid";
         assert countIslands(new char[][] { {}, {} }) == 0 : "empty rows";
         assert countIslands(new char[][] {
@@ -111,6 +126,24 @@ public class NumberOfIslands {
                 {'0', '1', '0', '1'},
                 {'1', '0', '1', '0'}
         }) == 6 : "multiple diagonally separated islands";
+        assert countIslands(new char[][] {
+                {'1', '0', '1', '1', '0', '1'}
+        }) == 3 : "single-row boundary islands";
+        assert countIslands(new char[][] {
+                {'1'}, {'0'}, {'1'}, {'1'}, {'0'}, {'1'}
+        }) == 3 : "single-column boundary islands";
+        assert countIslands(new char[][] {
+                {'1', '0', '1'},
+                {'0', '0', '0'},
+                {'1', '0', '1'}
+        }) == 4 : "four corner islands";
+
+        // Large connected component guards against recursive stack overflow.
+        char[][] largeLandMass = new char[800][800];
+        for (char[] row : largeLandMass) {
+            Arrays.fill(row, '1');
+        }
+        assert countIslands(largeLandMass) == 1 : "large all-land grid";
         expectJaggedGridRejected();
     }
 
