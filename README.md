@@ -87,6 +87,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Phone keypad letter combinations | JavaScript | [javascript/letter_combinations_phone_number.js](javascript/letter_combinations_phone_number.js) |
 | Fenwick tree (binary indexed tree) | TypeScript | [typescript/fenwick_tree.ts](typescript/fenwick_tree.ts) |
 
+### Solutions added (2026-11-06)
+
+| Problem | Language | Source |
+|---|---|---|
+| Quicksort | C | [c/quick_sort.c](c/quick_sort.c) |
+| Prim minimum spanning tree | C++ | [cpp/prim_mst.cpp](cpp/prim_mst.cpp) |
+| N-Queens | Java | [java/NQueens.java](java/NQueens.java) |
+| Subset sum | Python | [python/subset_sum.py](python/subset_sum.py) |
+| Binary-tree zigzag traversal | JavaScript | [javascript/binary_tree_zigzag.js](javascript/binary_tree_zigzag.js) |
+| Sparse-table range minimum query | TypeScript | [typescript/sparse_table.ts](typescript/sparse_table.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -95,6 +106,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Sliding window maximum (also implemented in JavaScript above) | Rust | [rust/sliding_window_max.rs](rust/sliding_window_max.rs) |
 | Maximum subarray (also implemented in C above) | Rust | [rust/maximum_subarray.rs](rust/maximum_subarray.rs) |
 | 0/1 knapsack (also implemented in JavaScript above) | Rust | [rust/knapsack_01.rs](rust/knapsack_01.rs) |
+| Prim minimum spanning tree (also implemented in C++ above) | Rust | [rust/prim_mst.rs](rust/prim_mst.rs) |
 
 ## Recent improvements
 
@@ -103,6 +115,8 @@ The C++ binary search in [BS.cpp](BS.cpp) is safe on an empty vector and returns
 The C [circular queue](c/circular_queue.c) computes wrapped indices with bounded branch-based arithmetic rather than modulo, keeping enqueue and dequeue O(1) while avoiding division in those index updates. C++ [Bellman–Ford](cpp/bellman_ford.cpp) iterates the caller-owned edge list by const reference instead of copying it, reducing algorithm/output storage to O(V) (in addition to the caller's O(E) input list).
 
 Python [longest palindromic substring](python/longest_palindromic_substring.py) now uses Manacher's algorithm for O(n) time and O(n) auxiliary space. Java [binary-tree diameter](java/BinaryTreeDiameter.java) now uses an iterative postorder traversal and explicit stack rather than recursion, retaining O(n) time and O(n) auxiliary space while remaining stack-safe for deeply skewed trees.
+
+Java [Number of Islands](java/NumberOfIslands.java) reuses a growable primitive integer work stack instead of allocating a boxed queue for each component, retaining O(R*C) time and O(R*C) auxiliary memory without mutating the input. C++ [quickselect](cpp/quickselect.cpp) retains its `kthSmallest` API and uses an introselect-style depth budget with a sort fallback to bound worst-case time at O(n log n); average time is O(n), and worst-case auxiliary space is O(log n) for the sort fallback.
 
 ## Layout and conventions
 
