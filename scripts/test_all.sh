@@ -44,6 +44,8 @@ run_c() {
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DMAXIMUM_SUBARRAY_TESTING "$source" -o "$output" && "$output"
   elif [ "$(basename "$source")" = "longest_unique_substring.c" ]; then
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DLONGEST_UNIQUE_SUBSTRING_SELF_TEST "$source" -o "$output" && "$output"
+  elif [ "$(basename "$source")" = "hash_table.c" ]; then
+    cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DHASH_TABLE_SELF_TEST "$source" -o "$output" && "$output"
   else
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
   fi

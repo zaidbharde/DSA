@@ -98,6 +98,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Binary-tree zigzag traversal | JavaScript | [javascript/binary_tree_zigzag.js](javascript/binary_tree_zigzag.js) |
 | Sparse-table range minimum query | TypeScript | [typescript/sparse_table.ts](typescript/sparse_table.ts) |
 
+### Solutions added (2026-11-07)
+
+| Problem | Language | Source |
+|---|---|---|
+| Open-addressed hash map (linear probing) | C | [c/hash_table.c](c/hash_table.c) |
+| A* grid pathfinding | C++ | [cpp/a_star_grid.cpp](cpp/a_star_grid.cpp) |
+| Dijkstra shortest paths | Java | [java/Dijkstra.java](java/Dijkstra.java) |
+| Matrix-chain multiplication | Python | [python/matrix_chain.py](python/matrix_chain.py) |
+| Binary-tree vertical-order traversal | JavaScript | [javascript/binary_tree_vertical_order.js](javascript/binary_tree_vertical_order.js) |
+| Lazy segment tree | TypeScript | [typescript/lazy_segment_tree.ts](typescript/lazy_segment_tree.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -107,6 +118,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Maximum subarray (also implemented in C above) | Rust | [rust/maximum_subarray.rs](rust/maximum_subarray.rs) |
 | 0/1 knapsack (also implemented in JavaScript above) | Rust | [rust/knapsack_01.rs](rust/knapsack_01.rs) |
 | Prim minimum spanning tree (also implemented in C++ above) | Rust | [rust/prim_mst.rs](rust/prim_mst.rs) |
+| Merge intervals (also implemented in C++ above) | Rust | [rust/merge_intervals.rs](rust/merge_intervals.rs) |
 
 ## Recent improvements
 
@@ -118,6 +130,8 @@ Python [longest palindromic substring](python/longest_palindromic_substring.py) 
 
 Java [Number of Islands](java/NumberOfIslands.java) reuses a growable primitive integer work stack instead of allocating a boxed queue for each component, retaining O(R*C) time and O(R*C) auxiliary memory without mutating the input. C++ [quickselect](cpp/quickselect.cpp) retains its `kthSmallest` API and uses an introselect-style depth budget with a sort fallback to bound worst-case time at O(n log n); average time is O(n), and worst-case auxiliary space is O(log n) for the sort fallback.
 
+The C++ [merge-intervals](cpp/merge_intervals.cpp) checks now compare against a separate reference merge across exhaustive short input sequences, integer-boundary cases, and invalid ranges, while retaining in-place compaction. JavaScript [LRU cache](javascript/lru_cache.js) validates capacities as nonnegative safe integers, evicts before inserting, preserves `Map`'s SameValueZero handling of `-0`, and avoids relinking an already-most-recent node; deterministic differential stress tests cover the cache operations and list/map invariants.
+
 ## Layout and conventions
 
 The original demonstrations remain at the repository root; additions are grouped in directories by implementation language (`c/`, `cpp/`, `java/`, `javascript/`, `python/`, `rust/`, and `typescript/`). Dated index sections list new problems, while parallel implementations of an existing problem are listed separately under additional-language implementations. Solutions are standalone examples rather than a single linked application.
@@ -126,4 +140,4 @@ Complexity notes should state time and auxiliary-space bounds, identify relevant
 
 ## Tests
 
-Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, and `BELLMAN_FORD_SELF_TEST` for the guarded C/C++ test entry points. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
+Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, and `HASH_TABLE_SELF_TEST` for the guarded C tests and `BELLMAN_FORD_SELF_TEST` for the guarded C++ test entry point. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
