@@ -23,6 +23,16 @@ function kmpSearch(text, pattern) {
   if (m === 0) return 0;
   if (m > n) return -1;
 
+  // A one-code-unit pattern needs no prefix table; scan directly and avoid
+  // allocating an array for this common case.
+  if (m === 1) {
+    const unit = pattern.charCodeAt(0);
+    for (let i = 0; i < n; i += 1) {
+      if (text.charCodeAt(i) === unit) return i;
+    }
+    return -1;
+  }
+
   const prefix = buildPrefixFunction(pattern);
   let textIndex = 0;
   let patternIndex = 0;
@@ -101,5 +111,49 @@ if (require.main === module) {
     // The low surrogate is a single UTF-16 code unit at index 2.
     assert.equal(kmpSearch('A😀B', '\uDE00'), 2);
     assert.equal(kmpSearch('😀😀', '😀'), 0);
+  });
+
+  test('matches a naive UTF-16 reference across exhaustive short inputs', () => {
+    const codeUnits = [0x61, 0x62, 0xD83D, 0xDE00];
+    const strings = [''];
+    let frontier = [''];
+
+    // Enumerate every string through length four, including lone surrogate
+    // code units as well as valid surrogate pairs.
+    for (let length = 1; length <= 4; length += 1) {
+      const next = [];
+      for (const prefix of frontier) {
+        for (const unit of codeUnits) {
+          next.push(prefix + String.fromCharCode(unit));
+        }
+      }
+      strings.push(...next);
+      frontier = next;
+    }
+
+    function naiveSearch(text, pattern) {
+      if (pattern.length === 0) return 0;
+      for (let start = 0; start <= text.length - pattern.length; start += 1) {
+        let matched = true;
+        for (let offset = 0; offset < pattern.length; offset += 1) {
+          if (text.charCodeAt(start + offset) !== pattern.charCodeAt(offset)) {
+            matched = false;
+            break;
+          }
+        }
+        if (matched) return start;
+      }
+      return -1;
+    }
+
+    for (const text of strings) {
+      for (const pattern of strings) {
+        assert.equal(
+          kmpSearch(text, pattern),
+          naiveSearch(text, pattern),
+          `text=${JSON.stringify(text)}, pattern=${JSON.stringify(pattern)}`
+        );
+      }
+    }
   });
 }
