@@ -1,8 +1,7 @@
 """Longest strictly increasing path in a 4-neighbor matrix.
 
-Memoized DFS visits each matrix cell once, taking O(R * C) time and
-O(R * C) memory. The recursive call stack can additionally use O(R * C)
-space in the worst case (for example, when values form one increasing path).
+Reverse topological dynamic programming visits each matrix cell and each
+neighbor a constant number of times, taking O(R * C) time and O(R * C) space.
 
 The input must be a sequence of row sequences with a rectangular shape. Entries
 must be finite ``numbers.Real`` values; booleans, complex numbers, other types,
@@ -10,9 +9,11 @@ and non-finite values are rejected. Empty matrices and rectangular matrices
 with zero columns have path length zero.
 """
 
+from collections import deque
 from collections.abc import Sequence
 import math
 from numbers import Real
+import sys
 import unittest
 
 
@@ -27,9 +28,10 @@ def longest_increasing_path(matrix: Sequence[Sequence[Real]]) -> int:
             entry is not a real number or is a boolean.
         ValueError: If rows have different lengths or an entry is non-finite.
 
-    Time complexity: O(R * C).
-    Space complexity: O(R * C) for memoized results, plus up to O(R * C)
-    recursion-stack space.
+    Time complexity: O(R * C), since each cell and its four neighbors are
+    processed a constant number of times.
+    Space complexity: O(R * C) for the dynamic-programming table, remaining
+    outdegrees, and processing queue.
     """
     if not isinstance(matrix, Sequence):
         raise TypeError("matrix must be a sequence of row sequences")
@@ -55,14 +57,33 @@ def longest_increasing_path(matrix: Sequence[Sequence[Real]]) -> int:
     if column_count == 0:
         return 0
 
-    memo = [[0] * column_count for _ in range(row_count)]
     directions = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    # Each cell's outdegree is the number of strictly larger neighbors. Begin
+    # with local maxima; processing them backwards propagates path lengths to
+    # smaller neighbors once all of their larger neighbors are available.
+    remaining_larger = [[0] * column_count for _ in range(row_count)]
+    path_lengths = [[1] * column_count for _ in range(row_count)]
+    ready = deque()
+    for row in range(row_count):
+        for column in range(column_count):
+            current = matrix[row][column]
+            for row_delta, column_delta in directions:
+                next_row = row + row_delta
+                next_column = column + column_delta
+                if (
+                    0 <= next_row < row_count
+                    and 0 <= next_column < column_count
+                    and matrix[next_row][next_column] > current
+                ):
+                    remaining_larger[row][column] += 1
+            if remaining_larger[row][column] == 0:
+                ready.append((row, column))
 
-    def visit(row: int, column: int) -> int:
-        if memo[row][column] != 0:
-            return memo[row][column]
-
-        best = 1
+    longest = 1
+    while ready:
+        row, column = ready.popleft()
+        current_length = path_lengths[row][column]
+        longest = max(longest, current_length)
         current = matrix[row][column]
         for row_delta, column_delta in directions:
             next_row = row + row_delta
@@ -70,18 +91,16 @@ def longest_increasing_path(matrix: Sequence[Sequence[Real]]) -> int:
             if (
                 0 <= next_row < row_count
                 and 0 <= next_column < column_count
-                and matrix[next_row][next_column] > current
+                and matrix[next_row][next_column] < current
             ):
-                best = max(best, 1 + visit(next_row, next_column))
+                path_lengths[next_row][next_column] = max(
+                    path_lengths[next_row][next_column], current_length + 1
+                )
+                remaining_larger[next_row][next_column] -= 1
+                if remaining_larger[next_row][next_column] == 0:
+                    ready.append((next_row, next_column))
 
-        memo[row][column] = best
-        return best
-
-    return max(
-        visit(row, column)
-        for row in range(row_count)
-        for column in range(column_count)
-    )
+    return longest
 
 
 class LongestIncreasingPathTests(unittest.TestCase):
@@ -96,6 +115,11 @@ class LongestIncreasingPathTests(unittest.TestCase):
     def test_increasing_and_decreasing_rows(self) -> None:
         self.assertEqual(longest_increasing_path([[1, 2, 3, 4]]), 4)
         self.assertEqual(longest_increasing_path([[4, 3, 2, 1]]), 4)
+
+    def test_long_monotone_path_exceeds_recursion_limit(self) -> None:
+        path_length = sys.getrecursionlimit() + 100
+        matrix = [[value] for value in range(path_length)]
+        self.assertEqual(longest_increasing_path(matrix), path_length)
 
     def test_duplicates_do_not_extend_path(self) -> None:
         self.assertEqual(longest_increasing_path([[5, 5], [5, 5]]), 1)
