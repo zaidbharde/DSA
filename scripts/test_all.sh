@@ -50,6 +50,8 @@ run_c() {
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DMIN_HEAP_SELF_TEST "$source" -o "$output" && "$output"
   elif [ "$(basename "$source")" = "rabin_karp.c" ]; then
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DRABIN_KARP_TEST "$source" -o "$output" && "$output"
+  elif [ "$(basename "$source")" = "boyer_moore_horspool.c" ]; then
+    cc -std=c11 -Wall -Wextra -Wpedantic -Werror -DBOYER_MOORE_HORSPOOL_TEST "$source" -o "$output" && "$output"
   else
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
   fi
