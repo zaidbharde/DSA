@@ -19,8 +19,9 @@
  * unblocked start equal to goal, the path contains that single cell.
  * Neighbors and priority-queue ties are ordered deterministically.
  *
- * Time: O(V log V), where V is the number of grid cells.
- * Space: O(V) for search state and the returned path.
+ * Time: O(V log V), where V is the number of grid cells (the grid has at most
+ * four edges per cell, and each successful relaxation adds one queue entry).
+ * Space: O(V) for the flat distance/parent arrays, queue, and returned path.
  */
 namespace a_star_grid {
 
@@ -60,16 +61,22 @@ std::vector<Cell> shortestPath(const Grid& blocked, Cell start, Cell goal) {
         return row_distance + column_distance;
     };
 
+    if (rows > std::numeric_limits<std::size_t>::max() / columns) {
+        throw std::length_error("grid is too large to index");
+    }
+    const std::size_t cell_count = rows * columns;
+    const auto indexOf = [columns](const Cell& cell) {
+        return cell.first * columns + cell.second;
+    };
     const std::size_t infinity = std::numeric_limits<std::size_t>::max();
-    std::vector<std::vector<std::size_t>> distance(
-        rows, std::vector<std::size_t>(columns, infinity));
-    std::vector<std::vector<Cell>> parent(
-        rows, std::vector<Cell>(columns, Cell{infinity, infinity}));
+    const std::size_t start_index = indexOf(start);
+    std::vector<std::size_t> distance(cell_count, infinity);
+    std::vector<std::size_t> parent(cell_count, infinity);
 
     // Tuple order makes equal-priority choices deterministic by (f, g, row, col).
     using Candidate = std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>;
     std::priority_queue<Candidate, std::vector<Candidate>, std::greater<Candidate>> open;
-    distance[start.first][start.second] = 0;
+    distance[start_index] = 0;
     open.emplace(heuristic(start), 0, start.first, start.second);
 
     // Fixed neighbor order: up, left, right, down.
@@ -80,19 +87,20 @@ std::vector<Cell> shortestPath(const Grid& blocked, Cell start, Cell goal) {
         const auto [estimated_total, current_distance, row, column] = open.top();
         static_cast<void>(estimated_total);
         open.pop();
-        if (current_distance != distance[row][column]) {
+        const std::size_t current_index = row * columns + column;
+        if (current_distance != distance[current_index]) {
             continue;
         }
 
         const Cell current{row, column};
         if (current == goal) {
             std::vector<Cell> path;
-            Cell cell = goal;
-            path.push_back(cell);
-            while (cell != start) {
-                cell = parent[cell.first][cell.second];
-                path.push_back(cell);
+            std::size_t path_index = indexOf(goal);
+            while (path_index != start_index) {
+                path.push_back({path_index / columns, path_index % columns});
+                path_index = parent[path_index];
             }
+            path.push_back(start);
             std::reverse(path.begin(), path.end());
             return path;
         }
@@ -113,9 +121,10 @@ std::vector<Cell> shortestPath(const Grid& blocked, Cell start, Cell goal) {
             }
 
             const std::size_t tentative_distance = current_distance + 1;
-            if (tentative_distance < distance[next.first][next.second]) {
-                distance[next.first][next.second] = tentative_distance;
-                parent[next.first][next.second] = current;
+            const std::size_t next_index = indexOf(next);
+            if (tentative_distance < distance[next_index]) {
+                distance[next_index] = tentative_distance;
+                parent[next_index] = current_index;
                 open.emplace(tentative_distance + heuristic(next), tentative_distance,
                              next.first, next.second);
             }
@@ -225,6 +234,28 @@ void testDeterministicOutput() {
             "equal-cost paths should have stable deterministic tie-breaking");
 }
 
+void testLargerGridFlatState() {
+    constexpr std::size_t rows = 32;
+    constexpr std::size_t columns = 40;
+    const a_star_grid::Grid grid(rows, std::vector<bool>(columns, false));
+    const auto path = a_star_grid::shortestPath(grid, {0, 0}, {rows - 1, columns - 1});
+    require(path.size() == rows + columns - 1,
+            "larger open-grid path should have Manhattan-shortest length");
+    require(path.front() == a_star_grid::Cell{0, 0} &&
+                path.back() == a_star_grid::Cell{rows - 1, columns - 1},
+            "larger open-grid path should preserve endpoints");
+    for (std::size_t i = 1; i < path.size(); ++i) {
+        const std::size_t row_delta = path[i].first > path[i - 1].first
+                                          ? path[i].first - path[i - 1].first
+                                          : path[i - 1].first - path[i].first;
+        const std::size_t column_delta = path[i].second > path[i - 1].second
+                                             ? path[i].second - path[i - 1].second
+                                             : path[i - 1].second - path[i].second;
+        require(row_delta + column_delta == 1,
+                "larger-grid path should contain only neighboring cells");
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -236,6 +267,7 @@ int main() {
         testSameCell();
         testInvalidGridShapesAndEndpoints();
         testDeterministicOutput();
+        testLargerGridFlatState();
         std::cout << "All A* grid pathfinding tests passed.\n";
         return 0;
     } catch (const std::exception& error) {
