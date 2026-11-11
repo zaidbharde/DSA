@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <exception>
-#include <functional>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -45,40 +44,65 @@ std::vector<int> findArticulationPoints(int vertex_count,
     std::size_t time = 0;
     const std::size_t no_parent_edge = std::numeric_limits<std::size_t>::max();
 
-    std::function<void(int, std::size_t)> dfs = [&](int vertex,
-                                                    std::size_t parent_edge_id) {
-        const std::size_t index = static_cast<std::size_t>(vertex);
-        discovery[index] = low[index] = ++time;
-        std::size_t tree_children = 0;
+    struct DfsFrame {
+        int vertex;
+        std::size_t parent_edge_id;
+        std::size_t next_edge;
+        std::size_t tree_children;
+    };
+    std::vector<DfsFrame> stack;
+    stack.reserve(static_cast<std::size_t>(vertex_count));
 
-        for (const auto& [neighbor, edge_id] : adjacency[index]) {
-            if (edge_id == parent_edge_id) {
+    for (int vertex = 0; vertex < vertex_count; ++vertex) {
+        const std::size_t root_index = static_cast<std::size_t>(vertex);
+        if (discovery[root_index] != 0) {
+            continue;
+        }
+
+        discovery[root_index] = low[root_index] = ++time;
+        stack.push_back({vertex, no_parent_edge, 0, 0});
+        while (!stack.empty()) {
+            DfsFrame& frame = stack.back();
+            const std::size_t index = static_cast<std::size_t>(frame.vertex);
+            if (frame.next_edge < adjacency[index].size()) {
+                const auto [neighbor, edge_id] = adjacency[index][frame.next_edge++];
+                if (edge_id == frame.parent_edge_id) {
+                    continue;
+                }
+
+                const std::size_t neighbor_index = static_cast<std::size_t>(neighbor);
+                if (discovery[neighbor_index] == 0) {
+                    ++frame.tree_children;
+                    discovery[neighbor_index] = low[neighbor_index] = ++time;
+                    stack.push_back({neighbor, edge_id, 0, 0});
+                } else {
+                    // Skip only the exact tree edge: another parallel edge is a
+                    // back edge and must lower the child's low-link value.
+                    low[index] = std::min(low[index], discovery[neighbor_index]);
+                }
                 continue;
             }
 
-            const std::size_t neighbor_index = static_cast<std::size_t>(neighbor);
-            if (discovery[neighbor_index] == 0) {
-                ++tree_children;
-                dfs(neighbor, edge_id);
-                low[index] = std::min(low[index], low[neighbor_index]);
-
-                if (parent_edge_id != no_parent_edge &&
-                    low[neighbor_index] >= discovery[index]) {
-                    is_articulation[index] = true;
+            const DfsFrame finished = frame;
+            stack.pop_back();
+            const std::size_t finished_index =
+                static_cast<std::size_t>(finished.vertex);
+            if (finished.parent_edge_id == no_parent_edge) {
+                if (finished.tree_children > 1) {
+                    is_articulation[finished_index] = true;
                 }
-            } else {
-                low[index] = std::min(low[index], discovery[neighbor_index]);
+                continue;
             }
-        }
 
-        if (parent_edge_id == no_parent_edge && tree_children > 1) {
-            is_articulation[index] = true;
-        }
-    };
-
-    for (int vertex = 0; vertex < vertex_count; ++vertex) {
-        if (discovery[static_cast<std::size_t>(vertex)] == 0) {
-            dfs(vertex, no_parent_edge);
+            // The parent frame remains on the stack until this child's DFS
+            // finishes, so post-order low-link propagation is explicit.
+            DfsFrame& parent = stack.back();
+            const std::size_t parent_index = static_cast<std::size_t>(parent.vertex);
+            low[parent_index] = std::min(low[parent_index], low[finished_index]);
+            if (parent.parent_edge_id != no_parent_edge &&
+                low[finished_index] >= discovery[parent_index]) {
+                is_articulation[parent_index] = true;
+            }
         }
     }
 
@@ -108,6 +132,23 @@ void testChain() {
             "chain should have articulation vertices 1 and 2");
 }
 
+void testDeepChain() {
+    constexpr int vertex_count = 50000;
+    std::vector<articulation_points::Edge> edges;
+    edges.reserve(static_cast<std::size_t>(vertex_count - 1));
+    for (int vertex = 0; vertex + 1 < vertex_count; ++vertex) {
+        edges.emplace_back(vertex, vertex + 1);
+    }
+
+    std::vector<int> expected;
+    expected.reserve(static_cast<std::size_t>(vertex_count - 2));
+    for (int vertex = 1; vertex + 1 < vertex_count; ++vertex) {
+        expected.push_back(vertex);
+    }
+    require(articulation_points::findArticulationPoints(vertex_count, edges) == expected,
+            "deep chain should find every internal vertex without recursion");
+}
+
 void testCycle() {
     const std::vector<articulation_points::Edge> edges{
         {0, 1}, {1, 2}, {2, 3}, {3, 0}};
@@ -121,6 +162,14 @@ void testStar() {
     require(articulation_points::findArticulationPoints(5, edges) ==
                 std::vector<int>({0}),
             "star center should be the only articulation vertex");
+}
+
+void testRootChildCountRule() {
+    require(articulation_points::findArticulationPoints(2, {{0, 1}}).empty(),
+            "DFS root with one tree child must not be an articulation vertex");
+    require(articulation_points::findArticulationPoints(
+                5, {{0, 1}, {0, 2}, {0, 3}, {0, 4}}) == std::vector<int>({0}),
+            "DFS root with multiple tree children must be an articulation vertex");
 }
 
 void testDisconnectedGraph() {
@@ -159,6 +208,14 @@ void testInvalidEndpoint() {
         threw = true;
     }
     require(threw, "invalid endpoint should throw std::invalid_argument");
+
+    threw = false;
+    try {
+        static_cast<void>(articulation_points::findArticulationPoints(2, {{-1, 0}}));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "negative endpoint should throw std::invalid_argument");
 }
 
 }  // namespace
@@ -166,8 +223,10 @@ void testInvalidEndpoint() {
 int main() {
     try {
         testChain();
+        testDeepChain();
         testCycle();
         testStar();
+        testRootChildCountRule();
         testDisconnectedGraph();
         testParallelEdges();
         testSelfLoop();
