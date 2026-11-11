@@ -142,6 +142,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Minimum-window substring | JavaScript | [javascript/minimum_window_substring.js](javascript/minimum_window_substring.js) |
 | Lowest common ancestor (binary lifting) | TypeScript | [typescript/binary_lifting_lca.ts](typescript/binary_lifting_lca.ts) |
 
+### Solutions added (2026-11-11)
+
+| Problem | Language | Source |
+|---|---|---|
+| Prime sieve | C | [c/prime_sieve.c](c/prime_sieve.c) |
+| Suffix automaton | C++ | [cpp/suffix_automaton.cpp](cpp/suffix_automaton.cpp) |
+| Maximal square | Java | [java/MaximalSquare.java](java/MaximalSquare.java) |
+| Regular-expression matching | Python | [python/regex_matching.py](python/regex_matching.py) |
+| Circular next-greater element | JavaScript | [javascript/next_greater_circular.js](javascript/next_greater_circular.js) |
+| Persistent segment tree | TypeScript | [typescript/persistent_segment_tree.ts](typescript/persistent_segment_tree.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -155,6 +166,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Fenwick tree (binary indexed tree; also implemented in TypeScript above) | Rust | [rust/fenwick_tree.rs](rust/fenwick_tree.rs) |
 | LRU cache (also implemented in JavaScript above) | Rust | [rust/lru_cache.rs](rust/lru_cache.rs) |
 | Sparse-table range minimum query (also implemented in TypeScript above) | Rust | [rust/sparse_table.rs](rust/sparse_table.rs) |
+| Quickselect (also implemented in C++ above) | Rust | [rust/quickselect.rs](rust/quickselect.rs) |
 
 ## Recent improvements
 
@@ -174,6 +186,8 @@ Java [AVL tree](java/AvlTree.java) now supports O(log n) worst-case deletion, in
 
 C++ [A* grid pathfinding](cpp/a_star_grid.cpp) stores distance and parent state in flat O(V) arrays rather than nested per-row structures, checks grid-cell-count multiplication before indexing, and reconstructs paths through flat indices; deterministic tie-breaking remains, with larger-grid endpoint, adjacency, and shortest-length checks. Python [longest increasing path in a matrix](python/longest_increasing_path_matrix.py) replaces recursive memoized DFS with reverse topological dynamic programming over larger-neighbor counts and a deque, preserving O(R × C) time and space while eliminating recursion-depth failure; a monotone path longer than Python's recursion limit is covered.
 
+C++ [articulation points](cpp/articulation_points.cpp) uses iterative DFS frames for post-order low-link propagation, avoiding call-stack exhaustion on deep graphs; edge IDs distinguish a DFS parent edge from parallel back edges, and tests cover a 50,000-vertex chain alongside graph edge cases. Java [Word Ladder](java/WordLadder.java) now uses bidirectional BFS, expands the smaller frontier, and generates candidate neighbors by character substitution with dictionary lookups instead of scanning the whole dictionary for each visited word; exhaustive small-dictionary comparisons against an independent one-way BFS check correctness.
+
 ## Layout and conventions
 
 The original demonstrations remain at the repository root; additions are grouped in directories by implementation language (`c/`, `cpp/`, `java/`, `javascript/`, `python/`, `rust/`, and `typescript/`). Dated index sections list new problems, while parallel implementations of an existing problem are listed separately under additional-language implementations. Solutions are standalone examples rather than a single linked application.
@@ -182,4 +196,4 @@ Complexity notes should state time and auxiliary-space bounds, identify relevant
 
 ## Tests
 
-Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, `HASH_TABLE_SELF_TEST`, `MIN_HEAP_SELF_TEST`, `RABIN_KARP_TEST`, and `BOYER_MOORE_HORSPOOL_TEST` for the guarded C tests and `BELLMAN_FORD_SELF_TEST` for the guarded C++ test entry point. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
+Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, `HASH_TABLE_SELF_TEST`, `MIN_HEAP_SELF_TEST`, `RABIN_KARP_TEST`, `BOYER_MOORE_HORSPOOL_TEST`, and `PRIME_SIEVE_TEST` for the guarded C tests and `BELLMAN_FORD_SELF_TEST` for the guarded C++ test entry point. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
