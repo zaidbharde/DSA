@@ -153,6 +153,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Circular next-greater element | JavaScript | [javascript/next_greater_circular.js](javascript/next_greater_circular.js) |
 | Persistent segment tree | TypeScript | [typescript/persistent_segment_tree.ts](typescript/persistent_segment_tree.ts) |
 
+### Solutions added (2026-11-12)
+
+| Problem | Language | Source |
+|---|---|---|
+| Shell sort | C | [c/shell_sort.c](c/shell_sort.c) |
+| Mo's algorithm for range-sum queries | C++ | [cpp/mo_range_sum_queries.cpp](cpp/mo_range_sum_queries.cpp) |
+| Palindrome partitioning | Java | [java/PalindromePartitioning.java](java/PalindromePartitioning.java) |
+| Top-k frequent elements | Python | [python/top_k_frequent.py](python/top_k_frequent.py) |
+| Skyline outline | JavaScript | [javascript/skyline_outline.js](javascript/skyline_outline.js) |
+| Median of two sorted arrays | TypeScript | [typescript/median_of_two_sorted_arrays.ts](typescript/median_of_two_sorted_arrays.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -167,8 +178,11 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | LRU cache (also implemented in JavaScript above) | Rust | [rust/lru_cache.rs](rust/lru_cache.rs) |
 | Sparse-table range minimum query (also implemented in TypeScript above) | Rust | [rust/sparse_table.rs](rust/sparse_table.rs) |
 | Quickselect (also implemented in C++ above) | Rust | [rust/quickselect.rs](rust/quickselect.rs) |
+| 0–1 BFS shortest paths (port of the C++ implementation above) | Rust | [rust/zero_one_bfs.rs](rust/zero_one_bfs.rs) |
 
 ## Recent improvements
+
+The C++ [bridge finder](cpp/bridges.cpp) uses iterative low-link DFS with edge identities to handle parallel edges and avoid recursion-depth limits; it reports normalized, sorted bridge pairs in O(V + E + B log B) time and O(V + E) auxiliary space (B is the number of bridges). Java [Dijkstra](java/Dijkstra.java) validates directed nonnegative-weight input, uses exact addition to detect unrepresentable paths without discarding representable alternatives, and returns -1 for unreachable vertices; its binary-heap bound is O(V + E log(E + 1)) time and O(V + E) auxiliary space.
 
 The C++ binary search in [BS.cpp](BS.cpp) is safe on an empty vector and returns the first occurrence when a target is duplicated. The Java BFS in [BFSGraph.java](BFSGraph.java) uses `ArrayDeque` as its FIFO queue. The C++ merge-interval implementation sorts its by-value input and compacts merged intervals in that same vector before resizing, avoiding a separate result allocation while retaining closed-interval semantics and invalid-range validation. JavaScript Kahn traversal preallocates its FIFO worklist to the vertex count and advances a head index, avoiding front-removal shifts and queue resizing while preserving deterministic order and O(V + E) time. Python [Word Break](python/word_break.py) builds a trie and starts bounded trie walks only at reachable text-prefix positions, with expected O(D + nL) time and O(D + n) storage (D dictionary characters, n text length, L maximum word length). Root Java [BinarySearch.java](BinarySearch.java) uses half-open bounds and an overflow-safe midpoint to find the first matching index in O(log n) time and O(1) auxiliary space, including for empty arrays and duplicate values.
 
