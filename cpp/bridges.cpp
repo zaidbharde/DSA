@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <exception>
-#include <functional>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -13,11 +12,14 @@
  * are in [0, vertex_count); invalid counts or endpoints throw
  * std::invalid_argument. Parallel edges and self-loops are supported by
  * tracking the identity of each input edge. Returned endpoint pairs are
- * normalized (smaller endpoint first) and sorted lexicographically.
+ * normalized (smaller endpoint first) and sorted lexicographically. An
+ * explicit stack performs iterative low-link DFS, avoiding call-stack growth;
+ * each frame retains its next adjacency entry for post-order propagation.
  *
  * Time: O(V + E + B log B), where E counts input edge entries and B is the
  * number of bridges (the final term sorts the returned bridge list).
- * Space: O(V + E + B), including adjacency, DFS state, and returned bridges.
+ * Auxiliary space: O(V + E), for adjacency, DFS state, and traversal frames.
+ * Output space: O(B) for the returned bridge list.
  */
 namespace bridges {
 
@@ -46,33 +48,63 @@ std::vector<Edge> findBridges(int vertex_count, const std::vector<Edge>& edges) 
     std::size_t time = 0;
     const std::size_t no_parent_edge = std::numeric_limits<std::size_t>::max();
 
-    std::function<void(int, std::size_t)> dfs = [&](int vertex,
-                                                    std::size_t parent_edge_id) {
-        const std::size_t index = static_cast<std::size_t>(vertex);
-        discovery[index] = low[index] = ++time;
+    struct DfsFrame {
+        int vertex;
+        std::size_t parent_edge_id;
+        std::size_t next_edge;
+    };
+    std::vector<DfsFrame> stack;
+    stack.reserve(static_cast<std::size_t>(vertex_count));
 
-        for (const auto& [neighbor, edge_id] : adjacency[index]) {
-            if (edge_id == parent_edge_id) {
+    for (int vertex = 0; vertex < vertex_count; ++vertex) {
+        const std::size_t root_index = static_cast<std::size_t>(vertex);
+        if (discovery[root_index] != 0) {
+            continue;
+        }
+
+        discovery[root_index] = low[root_index] = ++time;
+        stack.push_back({vertex, no_parent_edge, 0});
+        while (!stack.empty()) {
+            DfsFrame& frame = stack.back();
+            const std::size_t index = static_cast<std::size_t>(frame.vertex);
+            if (frame.next_edge < adjacency[index].size()) {
+                const auto [neighbor, edge_id] =
+                    adjacency[index][frame.next_edge++];
+                if (edge_id == frame.parent_edge_id) {
+                    continue;
+                }
+
+                const std::size_t neighbor_index =
+                    static_cast<std::size_t>(neighbor);
+                if (discovery[neighbor_index] == 0) {
+                    discovery[neighbor_index] = low[neighbor_index] = ++time;
+                    stack.push_back({neighbor, edge_id, 0});
+                } else {
+                    // Ignore only the exact tree edge; another edge to the
+                    // parent (including a parallel edge) is a back edge.
+                    low[index] = std::min(low[index], discovery[neighbor_index]);
+                }
                 continue;
             }
 
-            const std::size_t neighbor_index = static_cast<std::size_t>(neighbor);
-            if (discovery[neighbor_index] == 0) {
-                dfs(neighbor, edge_id);
-                low[index] = std::min(low[index], low[neighbor_index]);
-                if (low[neighbor_index] > discovery[index]) {
-                    result.emplace_back(std::min(vertex, neighbor),
-                                        std::max(vertex, neighbor));
-                }
-            } else {
-                low[index] = std::min(low[index], discovery[neighbor_index]);
+            const DfsFrame finished = frame;
+            stack.pop_back();
+            if (finished.parent_edge_id == no_parent_edge) {
+                continue;
             }
-        }
-    };
 
-    for (int vertex = 0; vertex < vertex_count; ++vertex) {
-        if (discovery[static_cast<std::size_t>(vertex)] == 0) {
-            dfs(vertex, no_parent_edge);
+            // The parent frame remains active until its child finishes, so
+            // low-link propagation and the bridge test happen in post-order.
+            DfsFrame& parent = stack.back();
+            const std::size_t parent_index =
+                static_cast<std::size_t>(parent.vertex);
+            const std::size_t child_index =
+                static_cast<std::size_t>(finished.vertex);
+            low[parent_index] = std::min(low[parent_index], low[child_index]);
+            if (low[child_index] > discovery[parent_index]) {
+                result.emplace_back(std::min(parent.vertex, finished.vertex),
+                                    std::max(parent.vertex, finished.vertex));
+            }
         }
     }
 
@@ -95,6 +127,18 @@ void testChain() {
     require(bridges::findBridges(4, edges) ==
                 std::vector<bridges::Edge>({{0, 1}, {1, 2}, {2, 3}}),
             "every edge in a chain should be a bridge");
+}
+
+void testDeepChain() {
+    constexpr int vertex_count = 100000;
+    std::vector<bridges::Edge> edges;
+    edges.reserve(static_cast<std::size_t>(vertex_count - 1));
+    for (int vertex = 0; vertex + 1 < vertex_count; ++vertex) {
+        edges.emplace_back(vertex, vertex + 1);
+    }
+
+    require(bridges::findBridges(vertex_count, edges) == edges,
+            "deep chain should report every edge without recursive stack use");
 }
 
 void testCycle() {
@@ -172,6 +216,7 @@ void testNormalizedAndSortedOutput() {
 int main() {
     try {
         testChain();
+        testDeepChain();
         testCycle();
         testStar();
         testDisconnectedGraph();
