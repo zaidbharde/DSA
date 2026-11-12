@@ -12,9 +12,11 @@ import java.util.PriorityQueue;
  * {@code -1L}; since valid distances are nonnegative, this sentinel leaves the
  * entire nonnegative {@code long} range available for distances.
  *
- * <p>Time complexity: O((V + E) log V) using a binary priority queue; space
- * complexity: O(V + E). Here V is the number of vertices and E is the number
- * of adjacency-list entries.
+ * <p>Time complexity: O(V + E log(E + 1)) using a binary priority queue;
+ * auxiliary space complexity: O(V + E), including queued entries. Here V is
+ * the number of vertices and E is the number of adjacency-list entries. The
+ * E-based logarithm accounts for multigraphs with arbitrarily many parallel
+ * edges.
  */
 public final class Dijkstra {
     /** Sentinel returned for vertices unreachable from the source. */
@@ -57,8 +59,9 @@ public final class Dijkstra {
      *         edge is null; the source or an edge endpoint is invalid; or an
      *         edge has a negative weight
      * @throws ArithmeticException if a candidate path distance exceeds
-     *         {@link Long#MAX_VALUE}; this is reported rather than wrapping or
-     *         silently treating an overflowing route as unreachable
+     *         {@link Long#MAX_VALUE} and its destination has no representable
+     *         route; overflowing alternatives to representably reachable
+     *         vertices are ignored
      */
     public static long[] shortestPaths(List<List<Edge>> graph, int source) {
         if (graph == null) {
@@ -100,6 +103,7 @@ public final class Dijkstra {
         PriorityQueue<QueueEntry> queue = new PriorityQueue<>(
                 Comparator.comparingLong(entry -> entry.distance));
         queue.add(new QueueEntry(source, 0L));
+        String[] overflowMessages = new String[vertexCount];
 
         while (!queue.isEmpty()) {
             QueueEntry current = queue.remove();
@@ -112,9 +116,14 @@ public final class Dijkstra {
                 try {
                     candidate = Math.addExact(current.distance, edge.weight);
                 } catch (ArithmeticException overflow) {
-                    throw new ArithmeticException("path distance overflow while traversing edge from "
-                            + current.vertex + " to " + edge.to + " (distance "
-                            + current.distance + ", weight " + edge.weight + ")");
+                    // Do not fail on a long alternative if another representable
+                    // route reaches this destination. Decide after traversal.
+                    if (overflowMessages[edge.to] == null) {
+                        overflowMessages[edge.to] = "path distance overflow while traversing edge from "
+                                + current.vertex + " to " + edge.to + " (distance "
+                                + current.distance + ", weight " + edge.weight + ")";
+                    }
+                    continue;
                 }
 
                 if (distances[edge.to] == UNREACHABLE || candidate < distances[edge.to]) {
@@ -124,6 +133,11 @@ public final class Dijkstra {
             }
         }
 
+        for (int vertex = 0; vertex < vertexCount; vertex++) {
+            if (overflowMessages[vertex] != null && distances[vertex] == UNREACHABLE) {
+                throw new ArithmeticException(overflowMessages[vertex]);
+            }
+        }
         return distances;
     }
 
@@ -190,6 +204,12 @@ public final class Dijkstra {
         addEdge(zeroWeight, 1, 2, 0L);
         assert Arrays.equals(shortestPaths(zeroWeight, 0), new long[] {0L, 0L, 0L});
 
+        List<List<Edge>> duplicateEdges = graph(2);
+        addEdge(duplicateEdges, 0, 1, 8L);
+        addEdge(duplicateEdges, 0, 1, 3L);
+        addEdge(duplicateEdges, 0, 1, 3L);
+        assert Arrays.equals(shortestPaths(duplicateEdges, 0), new long[] {0L, 3L});
+
         List<List<Edge>> invalidEndpoint = graph(2);
         addEdge(invalidEndpoint, 0, 2, 1L);
         expectIllegalArgument(() -> shortestPaths(invalidEndpoint, 0), "invalid endpoint");
@@ -202,6 +222,13 @@ public final class Dijkstra {
         addEdge(overflow, 0, 1, Long.MAX_VALUE);
         addEdge(overflow, 1, 2, 1L);
         expectArithmeticError(() -> shortestPaths(overflow, 0), "path distance overflow");
+
+        List<List<Edge>> overflowingAlternative = graph(3);
+        addEdge(overflowingAlternative, 0, 1, Long.MAX_VALUE - 1L);
+        addEdge(overflowingAlternative, 1, 2, 2L);
+        addEdge(overflowingAlternative, 0, 2, Long.MAX_VALUE);
+        assert Arrays.equals(shortestPaths(overflowingAlternative, 0),
+                new long[] {0L, Long.MAX_VALUE - 1L, Long.MAX_VALUE});
 
         List<List<Edge>> empty = graph(0);
         expectIllegalArgument(() -> shortestPaths(empty, 0), "invalid source");
