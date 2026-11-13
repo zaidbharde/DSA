@@ -16,9 +16,12 @@ class Node {
  * Within a column, values appear by level and then in left-to-right BFS
  * discovery order for ties. Returns [] for an empty tree.
  *
- * Time: O(n log n), where n is the number of nodes, due to sorting the
- * occupied columns (BFS traversal itself is O(n)).
- * Space: O(n) for the BFS queue, column groups, and returned result.
+ * Time: O(n + k log k), where n is the number of nodes and k is the number
+ * of occupied columns. BFS and periodic queue compaction take O(n) total;
+ * sorting the columns takes O(k log k).
+ * Space: O(n) for column groups and the returned result. Queue storage is
+ * O(w + 1), where w is the maximum BFS frontier width, because consumed
+ * entries are periodically compacted.
  *
  * @param {Node|null|undefined} root
  * @returns {Array<Array<*>>}
@@ -32,6 +35,14 @@ function verticalOrderTraversal(root) {
 
   while (head < queue.length) {
     const { node, column } = queue[head++];
+
+    // Drop consumed references in batches. Requiring the consumed prefix to
+    // be at least as large as the pending suffix keeps total compaction work
+    // linear, and the fixed threshold avoids frequent tiny copies.
+    if (head >= 1024 && head * 2 >= queue.length) {
+      queue.splice(0, head);
+      head = 0;
+    }
 
     if (!columns.has(column)) columns.set(column, []);
     columns.get(column).push(node.value);
@@ -52,6 +63,7 @@ if (require.main === module) {
 
   // Null tree.
   assert.deepEqual(verticalOrderTraversal(null), []);
+  assert.deepEqual(verticalOrderTraversal(undefined), []);
 
   // Singleton tree.
   assert.deepEqual(verticalOrderTraversal(new Node(7)), [[7]]);
@@ -71,6 +83,19 @@ if (require.main === module) {
     [7],
   ]);
 
+  // Duplicate values are retained, including when tied at the same level;
+  // their relative order is still left-to-right BFS discovery order.
+  const duplicates = new Node(
+    4,
+    new Node(4, null, new Node(4)),
+    new Node(4, new Node(4)),
+  );
+  assert.deepEqual(verticalOrderTraversal(duplicates), [
+    [4],
+    [4, 4, 4],
+    [4],
+  ]);
+
   // Right-skewed tree.
   const rightSkewed = new Node(1, null, new Node(2, null, new Node(3)));
   assert.deepEqual(verticalOrderTraversal(rightSkewed), [[1], [2], [3]]);
@@ -78,6 +103,18 @@ if (require.main === module) {
   // Left-skewed tree verifies that negative columns are ordered ascending.
   const leftSkewed = new Node(1, new Node(2, new Node(3)));
   assert.deepEqual(verticalOrderTraversal(leftSkewed), [[3], [2], [1]]);
+
+  // Large skewed input exercises iterative traversal and repeated queue
+  // compaction without recursion or retaining the entire processed prefix.
+  const skewedNodeCount = 20_000;
+  let largeRightSkewed = null;
+  for (let value = skewedNodeCount - 1; value >= 0; value -= 1) {
+    largeRightSkewed = new Node(value, null, largeRightSkewed);
+  }
+  assert.deepEqual(
+    verticalOrderTraversal(largeRightSkewed),
+    Array.from({ length: skewedNodeCount }, (_, value) => [value]),
+  );
 
   console.log('All binary_tree_vertical_order tests passed.');
 }
