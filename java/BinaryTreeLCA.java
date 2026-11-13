@@ -1,3 +1,9 @@
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.IdentityHashMap;
+import java.util.Set;
+
 /**
  * Lowest common ancestor (LCA) for a general binary tree.
  *
@@ -6,8 +12,9 @@
  * returns {@code null}. If both target references are the same, that node is returned
  * if it is present in the tree; otherwise the result is {@code null}.
  *
- * The search takes O(n) time in the worst case and uses O(h) recursion space, where
- * n is the number of tree nodes and h is the tree height.
+ * The search takes O(n) time and O(n) auxiliary space in the worst case, where n is
+ * the number of tree nodes. An explicit traversal stack avoids recursion-depth risk
+ * on highly skewed trees.
  */
 public final class BinaryTreeLCA {
     private BinaryTreeLCA() {
@@ -37,49 +44,45 @@ public final class BinaryTreeLCA {
             return null;
         }
 
-        SearchResult result = search(root, first, second);
-        return result.foundFirst && result.foundSecond ? result.candidate : null;
-    }
+        Deque<Node> pending = new ArrayDeque<>();
+        IdentityHashMap<Node, Node> parent = new IdentityHashMap<>();
+        parent.put(root, null);
+        pending.push(root);
 
-    /** Searches a subtree and records target presence independently of its candidate. */
-    private static SearchResult search(Node node, Node first, Node second) {
-        if (node == null) {
-            return SearchResult.EMPTY;
+        boolean foundFirst = false;
+        boolean foundSecond = false;
+        while (!pending.isEmpty()) {
+            Node node = pending.pop();
+            foundFirst |= node == first;
+            foundSecond |= node == second;
+            if (foundFirst && foundSecond) {
+                break;
+            }
+
+            if (node.right != null && !parent.containsKey(node.right)) {
+                parent.put(node.right, node);
+                pending.push(node.right);
+            }
+            if (node.left != null && !parent.containsKey(node.left)) {
+                parent.put(node.left, node);
+                pending.push(node.left);
+            }
         }
 
-        SearchResult left = search(node.left, first, second);
-        SearchResult right = search(node.right, first, second);
-        boolean isFirst = node == first;
-        boolean isSecond = node == second;
-        boolean foundFirst = isFirst || left.foundFirst || right.foundFirst;
-        boolean foundSecond = isSecond || left.foundSecond || right.foundSecond;
-
-        Node candidate;
-        if (isFirst || isSecond) {
-            // A target is an ancestor of any other target in this subtree.
-            candidate = node;
-        } else if (left.candidate != null && right.candidate != null) {
-            // The targets (or their already-computed LCA candidates) lie on both sides.
-            candidate = node;
-        } else {
-            candidate = left.candidate != null ? left.candidate : right.candidate;
+        if (!foundFirst || !foundSecond) {
+            return null;
         }
 
-        return new SearchResult(candidate, foundFirst, foundSecond);
-    }
-
-    private static final class SearchResult {
-        private static final SearchResult EMPTY = new SearchResult(null, false, false);
-
-        private final Node candidate;
-        private final boolean foundFirst;
-        private final boolean foundSecond;
-
-        private SearchResult(Node candidate, boolean foundFirst, boolean foundSecond) {
-            this.candidate = candidate;
-            this.foundFirst = foundFirst;
-            this.foundSecond = foundSecond;
+        Set<Node> firstAncestors = Collections.newSetFromMap(new IdentityHashMap<Node, Boolean>());
+        for (Node ancestor = first; ancestor != null; ancestor = parent.get(ancestor)) {
+            firstAncestors.add(ancestor);
         }
+        for (Node ancestor = second; ancestor != null; ancestor = parent.get(ancestor)) {
+            if (firstAncestors.contains(ancestor)) {
+                return ancestor;
+            }
+        }
+        return null;
     }
 
     private static void runTests() {
@@ -115,6 +118,21 @@ public final class BinaryTreeLCA {
 
         // Empty tree.
         assert lowestCommonAncestor(null, leftLeaf, rightLeaf) == null;
+
+        // A deep skewed tree must not consume the Java call stack.
+        Node deepRoot = new Node(0);
+        Node middle = deepRoot;
+        Node deepest = deepRoot;
+        for (int i = 1; i < 40_000; i++) {
+            deepest.right = new Node(i);
+            deepest = deepest.right;
+            if (i == 20_000) {
+                middle = deepest;
+            }
+        }
+        assert lowestCommonAncestor(deepRoot, middle, deepest) == middle;
+        assert lowestCommonAncestor(deepRoot, deepest, deepest) == deepest;
+        assert lowestCommonAncestor(deepRoot, middle, absent) == null;
     }
 
     public static void main(String[] args) {
