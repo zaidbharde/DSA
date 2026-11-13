@@ -64,6 +64,8 @@ run_cpp() {
   output=$2
   if [ "$(basename "$source")" = "bellman_ford.cpp" ]; then
     c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -DBELLMAN_FORD_SELF_TEST "$source" -o "$output" && "$output"
+  elif [ "$(basename "$source")" = "hopcroft_karp.cpp" ]; then
+    c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -DHOPCROFT_KARP_SELF_TEST "$source" -o "$output" && "$output"
   else
     c++ -std=c++17 -Wall -Wextra -Wpedantic -Werror "$source" -o "$output" && "$output"
   fi

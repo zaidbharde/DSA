@@ -164,6 +164,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Skyline outline | JavaScript | [javascript/skyline_outline.js](javascript/skyline_outline.js) |
 | Median of two sorted arrays | TypeScript | [typescript/median_of_two_sorted_arrays.ts](typescript/median_of_two_sorted_arrays.ts) |
 
+### Solutions added (2026-11-13)
+
+| Problem | Language | Source |
+|---|---|---|
+| Majority element (Boyer–Moore vote) | C | [c/majority_element.c](c/majority_element.c) |
+| Maximum bipartite matching (Hopcroft–Karp) | C++ | [cpp/hopcroft_karp.cpp](cpp/hopcroft_karp.cpp) |
+| Fast-doubling Fibonacci | Java | [java/FastDoublingFibonacci.java](java/FastDoublingFibonacci.java) |
+| Reservoir sampling | Python | [python/reservoir_sampling.py](python/reservoir_sampling.py) |
+| Longest valid parentheses | JavaScript | [javascript/longest_valid_parentheses.js](javascript/longest_valid_parentheses.js) |
+| Maximum XOR pair | TypeScript | [typescript/maximum_xor_pair.ts](typescript/maximum_xor_pair.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -179,6 +190,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Sparse-table range minimum query (also implemented in TypeScript above) | Rust | [rust/sparse_table.rs](rust/sparse_table.rs) |
 | Quickselect (also implemented in C++ above) | Rust | [rust/quickselect.rs](rust/quickselect.rs) |
 | 0–1 BFS shortest paths (port of the C++ implementation above) | Rust | [rust/zero_one_bfs.rs](rust/zero_one_bfs.rs) |
+| Maximum flow (Edmonds–Karp; port of the C++ implementation above) | Rust | [rust/edmonds_karp.rs](rust/edmonds_karp.rs) |
 
 ## Recent improvements
 
@@ -202,6 +214,8 @@ C++ [A* grid pathfinding](cpp/a_star_grid.cpp) stores distance and parent state 
 
 C++ [articulation points](cpp/articulation_points.cpp) uses iterative DFS frames for post-order low-link propagation, avoiding call-stack exhaustion on deep graphs; edge IDs distinguish a DFS parent edge from parallel back edges, and tests cover a 50,000-vertex chain alongside graph edge cases. Java [Word Ladder](java/WordLadder.java) now uses bidirectional BFS, expands the smaller frontier, and generates candidate neighbors by character substitution with dictionary lookups instead of scanning the whole dictionary for each visited word; exhaustive small-dictionary comparisons against an independent one-way BFS check correctness.
 
+Java [binary-tree LCA](java/BinaryTreeLCA.java) uses an explicit identity-based parent traversal and ancestor set, preserving O(n) time and O(n) auxiliary space while avoiding recursion-depth failures on skewed trees; tests include a 40,000-node chain and absent or duplicate-valued targets. JavaScript [binary-tree vertical order](javascript/binary_tree_vertical_order.js) periodically compacts its BFS queue to release consumed entries; BFS and compaction take O(n) total time, using O(w + 1) queue space for maximum frontier width w, followed by O(k log k) sorting of k occupied columns.
+
 ## Layout and conventions
 
 The original demonstrations remain at the repository root; additions are grouped in directories by implementation language (`c/`, `cpp/`, `java/`, `javascript/`, `python/`, `rust/`, and `typescript/`). Dated index sections list new problems, while parallel implementations of an existing problem are listed separately under additional-language implementations. Solutions are standalone examples rather than a single linked application.
@@ -210,4 +224,4 @@ Complexity notes should state time and auxiliary-space bounds, identify relevant
 
 ## Tests
 
-Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, `HASH_TABLE_SELF_TEST`, `MIN_HEAP_SELF_TEST`, `RABIN_KARP_TEST`, `BOYER_MOORE_HORSPOOL_TEST`, and `PRIME_SIEVE_TEST` for the guarded C tests and `BELLMAN_FORD_SELF_TEST` for the guarded C++ test entry point. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
+Run `scripts/test_all.sh` from any working directory to compile and run the repository's standalone demos and self-tests. Compiled artifacts go into a temporary directory that is removed on exit. C and C++ compilation uses strict warning flags; the runner defines `MAXIMUM_SUBARRAY_TESTING`, `LONGEST_UNIQUE_SUBSTRING_SELF_TEST`, `HASH_TABLE_SELF_TEST`, `MIN_HEAP_SELF_TEST`, `RABIN_KARP_TEST`, `BOYER_MOORE_HORSPOOL_TEST`, and `PRIME_SIEVE_TEST` for the guarded C tests, and `BELLMAN_FORD_SELF_TEST` and `HOPCROFT_KARP_SELF_TEST` for the guarded C++ test entry points. Java checks enable assertions and use strict `javac` lint flags when `javac` is available, otherwise they use the Java source-file launcher. TypeScript is type-checked in strict mode; Rust sources are compiled with `rustc --edition=2021 --test -D warnings`. Missing toolchains are reported as skipped, while actual test failures cause a non-zero exit status. Toolchain availability may vary by machine.
