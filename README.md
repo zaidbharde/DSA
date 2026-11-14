@@ -175,6 +175,17 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Longest valid parentheses | JavaScript | [javascript/longest_valid_parentheses.js](javascript/longest_valid_parentheses.js) |
 | Maximum XOR pair | TypeScript | [typescript/maximum_xor_pair.ts](typescript/maximum_xor_pair.ts) |
 
+### Solutions added (2026-11-14)
+
+| Problem | Language | Source |
+|---|---|---|
+| Counting sort | C | [c/counting_sort.c](c/counting_sort.c) |
+| Johnson all-pairs shortest paths | C++ | [cpp/johnson_apsp.cpp](cpp/johnson_apsp.cpp) |
+| LFU cache | Java | [java/LFUCache.java](java/LFUCache.java) |
+| Directed Eulerian trail | Python | [python/eulerian_trail.py](python/eulerian_trail.py) |
+| Stock span | JavaScript | [javascript/stock_span.js](javascript/stock_span.js) |
+| Rollback disjoint set (union-find) | TypeScript | [typescript/rollback_dsu.ts](typescript/rollback_dsu.ts) |
+
 ### Additional-language implementations
 
 | Existing problem | Additional language | Source |
@@ -191,6 +202,7 @@ A compact, multi-language index of standalone data-structure and algorithm demon
 | Quickselect (also implemented in C++ above) | Rust | [rust/quickselect.rs](rust/quickselect.rs) |
 | 0–1 BFS shortest paths (port of the C++ implementation above) | Rust | [rust/zero_one_bfs.rs](rust/zero_one_bfs.rs) |
 | Maximum flow (Edmonds–Karp; port of the C++ implementation above) | Rust | [rust/edmonds_karp.rs](rust/edmonds_karp.rs) |
+| Maximum XOR pair (port of the TypeScript implementation above) | Rust | [rust/maximum_xor_pair.rs](rust/maximum_xor_pair.rs) |
 
 ## Recent improvements
 
@@ -215,6 +227,8 @@ C++ [A* grid pathfinding](cpp/a_star_grid.cpp) stores distance and parent state 
 C++ [articulation points](cpp/articulation_points.cpp) uses iterative DFS frames for post-order low-link propagation, avoiding call-stack exhaustion on deep graphs; edge IDs distinguish a DFS parent edge from parallel back edges, and tests cover a 50,000-vertex chain alongside graph edge cases. Java [Word Ladder](java/WordLadder.java) now uses bidirectional BFS, expands the smaller frontier, and generates candidate neighbors by character substitution with dictionary lookups instead of scanning the whole dictionary for each visited word; exhaustive small-dictionary comparisons against an independent one-way BFS check correctness.
 
 Java [binary-tree LCA](java/BinaryTreeLCA.java) uses an explicit identity-based parent traversal and ancestor set, preserving O(n) time and O(n) auxiliary space while avoiding recursion-depth failures on skewed trees; tests include a 40,000-node chain and absent or duplicate-valued targets. JavaScript [binary-tree vertical order](javascript/binary_tree_vertical_order.js) periodically compacts its BFS queue to release consumed entries; BFS and compaction take O(n) total time, using O(w + 1) queue space for maximum frontier width w, followed by O(k log k) sorting of k occupied columns.
+
+JavaScript [0/1 knapsack](javascript/knapsack_01.js) now rejects capacities that cannot form an array-backed DP table before allocation and exhaustively compares short instances—including zero-weight and negative-value items—with a two-row reference; the implementation remains O(nW) time and O(W) auxiliary space for n items and capacity W, excluding input arrays. The C [open-addressed hash table](c/hash_table.c) now increments and explicitly wraps probe indices for both ordinary lookup/insertion and rehash collision placement, avoiding per-collision modulo operations; a 900-key collision-heavy regression exercises growth, lookup, update, deletion through tombstones, and reinsertion. Existing bounded-load growth and tombstone compaction maintain expected O(1) operations under a well-distributed hash, worst-case O(n), with O(capacity) table storage and O(capacity) temporary rehash storage.
 
 ## Layout and conventions
 
