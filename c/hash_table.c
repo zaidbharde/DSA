@@ -100,11 +100,11 @@ static bool hash_map_probe(const HashMap *map, int key, size_t *found_index,
                            size_t *insert_index)
 {
     const size_t start = hash_map_index_for(key, map->capacity);
+    size_t index = start;
     size_t first_tombstone = SIZE_MAX;
     size_t offset;
 
     for (offset = 0U; offset < map->capacity; ++offset) {
-        const size_t index = (start + offset) % map->capacity;
         const HashMapSlot *slot = &map->slots[index];
 
         if (slot->state == SLOT_OCCUPIED) {
@@ -123,6 +123,10 @@ static bool hash_map_probe(const HashMap *map, int key, size_t *found_index,
                 *insert_index = first_tombstone == SIZE_MAX ? index : first_tombstone;
             }
             return false;
+        }
+        ++index;
+        if (index == map->capacity) {
+            index = 0U;
         }
     }
 
@@ -152,7 +156,10 @@ static HashMapStatus hash_map_rehash(HashMap *map, size_t new_capacity)
         if (old_slot->state == SLOT_OCCUPIED) {
             size_t index = hash_map_index_for(old_slot->key, new_capacity);
             while (new_slots[index].state == SLOT_OCCUPIED) {
-                index = (index + 1U) % new_capacity;
+                ++index;
+                if (index == new_capacity) {
+                    index = 0U;
+                }
             }
             new_slots[index] = *old_slot;
         }
@@ -382,6 +389,64 @@ static void test_missing_growth_and_extreme_keys(void)
     hash_map_destroy(&map);
 }
 
+static void test_large_collision_chain_growth_and_tombstones(void)
+{
+    enum { KEY_COUNT = 900, FINAL_CAPACITY = 2048 };
+    HashMap map;
+    int keys[KEY_COUNT];
+    size_t count = 0U;
+    int candidate;
+    size_t i;
+    int value;
+    bool inserted;
+
+    assert(hash_map_init(&map, 8U) == HASH_MAP_OK);
+    /* All keys share the final table's last bucket, forcing wraparound probes. */
+    for (candidate = 0; candidate < INT_MAX && count < KEY_COUNT; ++candidate) {
+        if (hash_map_index_for(candidate, FINAL_CAPACITY) == FINAL_CAPACITY - 1U) {
+            keys[count++] = candidate;
+        }
+    }
+    assert(count == KEY_COUNT);
+
+    for (i = 0U; i < KEY_COUNT; ++i) {
+        assert(hash_map_put(&map, keys[i], (int)i, &inserted) == HASH_MAP_OK);
+        assert(inserted);
+    }
+    assert(map.capacity == FINAL_CAPACITY);
+    assert(hash_map_size(&map) == KEY_COUNT);
+
+    for (i = 0U; i < KEY_COUNT; ++i) {
+        assert(hash_map_get(&map, keys[i], &value) == HASH_MAP_OK);
+        assert(value == (int)i);
+        assert(hash_map_put(&map, keys[i], (int)(i + KEY_COUNT), &inserted) == HASH_MAP_OK);
+        assert(!inserted);
+    }
+    assert(hash_map_size(&map) == KEY_COUNT);
+
+    for (i = 0U; i < KEY_COUNT; i += 2U) {
+        assert(hash_map_remove(&map, keys[i]) == HASH_MAP_OK);
+    }
+    for (i = 0U; i < KEY_COUNT; ++i) {
+        if (i % 2U == 0U) {
+            assert(hash_map_get(&map, keys[i], &value) == HASH_MAP_NOT_FOUND);
+        } else {
+            assert(hash_map_get(&map, keys[i], &value) == HASH_MAP_OK);
+            assert(value == (int)(i + KEY_COUNT));
+        }
+    }
+    for (i = 0U; i < KEY_COUNT; i += 2U) {
+        assert(hash_map_put(&map, keys[i], -(int)i, &inserted) == HASH_MAP_OK);
+        assert(inserted);
+    }
+    assert(hash_map_size(&map) == KEY_COUNT);
+    for (i = 0U; i < KEY_COUNT; ++i) {
+        assert(hash_map_get(&map, keys[i], &value) == HASH_MAP_OK);
+        assert(value == (i % 2U == 0U ? -(int)i : (int)(i + KEY_COUNT)));
+    }
+    hash_map_destroy(&map);
+}
+
 static void test_invalid_arguments_and_capacity_overflow(void)
 {
     HashMap map;
@@ -401,6 +466,7 @@ int main(void)
 {
     test_collisions_updates_and_deletion();
     test_missing_growth_and_extreme_keys();
+    test_large_collision_chain_growth_and_tombstones();
     test_invalid_arguments_and_capacity_overflow();
     puts("hash_table self-tests passed");
     return 0;
